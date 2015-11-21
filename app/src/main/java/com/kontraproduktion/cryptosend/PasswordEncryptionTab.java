@@ -1,12 +1,9 @@
 package com.kontraproduktion.cryptosend;
 
 import android.content.Intent;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.OpenableColumns;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,8 +11,8 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+
+import interfaces.FileProcessor;
 
 /**
  * Created by Jakob on 10/11/15.
@@ -27,7 +24,12 @@ public class PasswordEncryptionTab extends Fragment {
     static final int CHOOSE_FILE_TO_ENCRYPT_REQUEST = 1;
     static final int CHOOSE_FILE_TO_DECRYPT_REQUEST = 2;
 
+    private FileProcessor processor = new FileProcessor();
     private PasswordFileEncryptor encryptor = new PasswordFileEncryptor();
+
+    public PasswordEncryptionTab() {
+        processor.setAlgorithm(encryptor);
+    }
 
     /**
      * Returns a new instance of this fragment for the given section
@@ -63,45 +65,17 @@ public class PasswordEncryptionTab extends Fragment {
         return rootView;
     }
 
-    private String resolveFileName(Uri uri) {
-        String filename = null;
-        String uriString = uri.toString();
 
-        if (uriString.startsWith("content://")) {
-            Cursor cursor = null;
-            try {
-                cursor = getActivity().getContentResolver().query(uri, null, null, null, null);
-                if (cursor != null && cursor.moveToFirst()) {
-                    filename = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
-                }
-            } finally {
-                cursor.close();
-            }
-        } else if (uriString.startsWith("file://")) {
-            filename = (new File(uriString)).getName();
-        }
-        return filename;
-    }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         if (requestCode == CHOOSE_FILE_TO_ENCRYPT_REQUEST && data != null) {
 
-            String filename = resolveFileName(data.getData());
-            InputStream inputStream = null;
-            try {
-                inputStream = getActivity().getContentResolver().openInputStream(data.getData());
-            } catch (FileNotFoundException e) {
-                Log.e(TAG, "Could not find file to encrypt");
-                return;
-            }
-            encryptor.setContext(getContext());
-            encryptor.setInputStream(filename, inputStream);
-
+            processor.loadFile(data.getData(), getActivity());
             // Create dialog here and soo on ...
             encryptor.setPassword("1234567890");
-            File encryptedFile = encryptor.encrypt();
+            File encryptedFile = processor.processFile();
 
             Intent shareIntent = new Intent();
             shareIntent.setAction(Intent.ACTION_SEND);
