@@ -1,5 +1,6 @@
 package com.kontraproduktion.cryptosend;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -79,8 +80,14 @@ public class PasswordEncryptionTab extends Fragment {
 
             Intent shareIntent = new Intent();
             shareIntent.setAction(Intent.ACTION_SEND);
-            shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(encryptedFile));
-            shareIntent.setType("*/*");
+          // shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            shareIntent.setFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            shareIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            shareIntent.setDataAndType(Uri.fromFile(encryptedFile), "*/*");
+       //     MainActivity.this.setResult(Activity.RESULT_OK,
+         //           mResultIntent);
+         //   shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(encryptedFile));
+          //  shareIntent.setType("*/*");
             startActivity(Intent.createChooser(shareIntent, getResources().getText(R.string.send_intent_title)));
         }
     }

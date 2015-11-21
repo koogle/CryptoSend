@@ -3,12 +3,11 @@ package com.kontraproduktion.cryptosend;
 import android.content.Context;
 import android.util.Log;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 
-import helper.EncryptionHelper;
+import helper.CryptoHelper;
+import helper.IOHelper;
 import interfaces.EncryptInterface;
 import interfaces.FileProcessingAlgorithm;
 import interfaces.PasswordInterface;
@@ -23,20 +22,11 @@ public class PasswordFileEncryptor extends FileProcessingAlgorithm implements Pa
 
     public PasswordFileEncryptor(Context context) {
         this.setContext(context);
+        this.extension = ".crypt";
     }
 
-    public PasswordFileEncryptor() {}
-
-    private byte[] readBytes(InputStream inputStream) throws IOException {
-        ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
-        int bufferSize = 1024;
-        byte[] buffer = new byte[bufferSize];
-
-        int len = 0;
-        while ((len = inputStream.read(buffer)) != -1) {
-            byteBuffer.write(buffer, 0, len);
-        }
-        return byteBuffer.toByteArray();
+    public PasswordFileEncryptor() {
+        this.extension = ".crypt";
     }
 
     @Override
@@ -51,9 +41,9 @@ public class PasswordFileEncryptor extends FileProcessingAlgorithm implements Pa
 
         byte[] encryptedData;
         try {
-            byte[] inputData = this.readBytes(inputStream);
-            EncryptionHelper encryptionHelper = EncryptionHelper.getInstance();
-            encryptedData = encryptionHelper.encryptWithAES(inputData, password);
+            byte[] inputData = IOHelper.readBytes(inputStream);
+            CryptoHelper cryptoHelper = CryptoHelper.getInstance();
+            encryptedData = cryptoHelper.encryptWithAES(inputData, password);
         } catch (IOException e) {
             Log.e(TAG, "IOException while reading file");
             e.printStackTrace();

@@ -54,7 +54,7 @@ public abstract class FileProcessingAlgorithm {
 
         File resultFile = null;
         try {
-            resultFile = CacheFileHelper.getInstance().createNewCacheFile(filename, this.extension, context);
+            resultFile = CacheFileHelper.getInstance().createNewCacheFile(filename, extension, context);
 
             BufferedOutputStream bufferedOutStream = new BufferedOutputStream(new FileOutputStream(resultFile));
             bufferedOutStream.write(processedData);
