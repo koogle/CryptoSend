@@ -26,7 +26,7 @@ public class PasswordFileEncryptor extends FileProcessingAlgorithm implements Pa
     }
 
     public PasswordFileEncryptor() {
-        this.extension = "_crypt.txt";
+        this.extension = ".crypt";
     }
 
     @Override
