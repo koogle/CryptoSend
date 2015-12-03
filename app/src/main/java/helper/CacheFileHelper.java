@@ -1,13 +1,16 @@
 package helper;
 
 import android.content.Context;
+import android.os.Environment;
 import android.util.Log;
 
 import com.kontraproduktion.cryptosend.R;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Comparator;
 
@@ -18,8 +21,25 @@ public class CacheFileHelper {
     private static final String TAG = CacheFileHelper.class.getSimpleName();
 
     private static final CacheFileHelper instance = new CacheFileHelper();
+    private File latestFile = null;
+
+    public static byte[] readBytes(InputStream inputStream) throws IOException {
+        ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+        int bufferSize = 1024;
+        byte[] buffer = new byte[bufferSize];
+
+        int len = 0;
+        while ((len = inputStream.read(buffer)) != -1) {
+            byteBuffer.write(buffer, 0, len);
+        }
+        return byteBuffer.toByteArray();
+    }
 
     private CacheFileHelper() {}
+
+    private long getMaxCacheSize(Context context) {
+        return context.getResources().getInteger(R.integer.max_cache_size) * 1000000;
+    }
 
     public static CacheFileHelper getInstance() {
         return instance;
@@ -28,16 +48,21 @@ public class CacheFileHelper {
     public File createNewCacheFile(String filename, String extension, Context context) throws IOException {
         balanceCacheSize(context);
 
-        File cacheDir = context.getCacheDir();
-        return File.createTempFile(filename, extension, cacheDir);
+        File cacheDir = context.getFilesDir(); // context.getCacheDir();
+        latestFile = new File(cacheDir, filename + extension); // File.createTempFile(filename, extension, cacheDir);
+        return latestFile;
+    }
+
+    public File getLatestFile() {
+        return latestFile;
     }
 
     public void balanceCacheSize(Context context) {
-        File cacheDir = context.getCacheDir();
-        if(currentCacheSize(cacheDir) > context.getResources().getInteger(R.integer.max_cache_size)) {
+        File cacheDir = context.getFilesDir(); // context.getCacheDir();
+        if(currentCacheSize(cacheDir) > getMaxCacheSize(context)) {
             trimCache(context.getResources().getInteger(R.integer.max_cache_size) - currentCacheSize(cacheDir), cacheDir);
 
-            if(currentCacheSize(cacheDir) > context.getResources().getInteger(R.integer.max_cache_size)) {
+            if(currentCacheSize(cacheDir) > getMaxCacheSize(context)) {
                 Log.e(TAG, "Could not trim cache to satisfy max. cache size");
             }
         }

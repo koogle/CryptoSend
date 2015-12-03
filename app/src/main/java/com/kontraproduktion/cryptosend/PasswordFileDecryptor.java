@@ -5,8 +5,8 @@ import android.util.Log;
 import java.io.File;
 import java.io.IOException;
 
+import helper.CacheFileHelper;
 import helper.CryptoHelper;
-import helper.IOHelper;
 import interfaces.DecryptInterface;
 import interfaces.FileProcessingAlgorithm;
 import interfaces.PasswordInterface;
@@ -31,7 +31,7 @@ public class PasswordFileDecryptor extends FileProcessingAlgorithm implements Pa
 
         byte[] decryptedData;
         try {
-            byte[] inputData = IOHelper.readBytes(inputStream);
+            byte[] inputData = CacheFileHelper.readBytes(inputStream);
             CryptoHelper cryptoHelper = CryptoHelper.getInstance();
             decryptedData = cryptoHelper.decryptWithAES(inputData, password);
         } catch (IOException e) {

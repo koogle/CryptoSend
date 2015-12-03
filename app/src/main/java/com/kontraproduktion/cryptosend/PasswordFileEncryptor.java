@@ -6,8 +6,8 @@ import android.util.Log;
 import java.io.File;
 import java.io.IOException;
 
+import helper.CacheFileHelper;
 import helper.CryptoHelper;
-import helper.IOHelper;
 import interfaces.EncryptInterface;
 import interfaces.FileProcessingAlgorithm;
 import interfaces.PasswordInterface;
@@ -21,12 +21,12 @@ public class PasswordFileEncryptor extends FileProcessingAlgorithm implements Pa
     private String password = null;
 
     public PasswordFileEncryptor(Context context) {
+        this();
         this.setContext(context);
-        this.extension = ".crypt";
     }
 
     public PasswordFileEncryptor() {
-        this.extension = ".crypt";
+        this.extension = "_crypt.txt";
     }
 
     @Override
@@ -41,7 +41,7 @@ public class PasswordFileEncryptor extends FileProcessingAlgorithm implements Pa
 
         byte[] encryptedData;
         try {
-            byte[] inputData = IOHelper.readBytes(inputStream);
+            byte[] inputData = CacheFileHelper.readBytes(inputStream);
             CryptoHelper cryptoHelper = CryptoHelper.getInstance();
             encryptedData = cryptoHelper.encryptWithAES(inputData, password);
         } catch (IOException e) {

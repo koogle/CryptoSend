@@ -1,10 +1,11 @@
 package com.kontraproduktion.cryptosend;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.FileProvider;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -80,10 +81,21 @@ public class PasswordEncryptionTab extends Fragment {
 
             Intent shareIntent = new Intent();
             shareIntent.setAction(Intent.ACTION_SEND);
-          // shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            shareIntent.setFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            shareIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            shareIntent.setDataAndType(Uri.fromFile(encryptedFile), "*/*");
+
+            Uri fileUri = FileProvider.getUriForFile(getContext(), "com.kontraproduktion.cryptosend.fileprovider", encryptedFile);
+            //fileUri = Uri.parse(fileUri.toString() + ".txt");
+            Log.d(TAG, "file URI is " + fileUri.toString() + "  " + getActivity().getContentResolver().getType(fileUri));
+
+       //     File auxFile = new File(fileUri.getPath());
+       //     Log.d(TAG, "" + auxFile.getAbsolutePath() + "     " + encryptedFile.getAbsolutePath());
+
+            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            shareIntent.putExtra(Intent.EXTRA_TITLE, "tst.txt");
+            shareIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
+            shareIntent.setType("*/*");
+
+//            shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse("content://" + cacheFileProvider.AUTHORITY + "/" + encryptedFile.getName()));
+//            shareIntent.setType("text/plain");
        //     MainActivity.this.setResult(Activity.RESULT_OK,
          //           mResultIntent);
          //   shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(encryptedFile));

@@ -45,6 +45,7 @@ public class FileProcessor {
 
     public void loadFile(Uri fileUri, Activity activity) {
         String filename = resolveFileName(fileUri, activity);
+        Log.d(TAG, "loadFile filename " + filename);
         InputStream inputStream = null;
         try {
             inputStream = activity.getContentResolver().openInputStream(fileUri);
