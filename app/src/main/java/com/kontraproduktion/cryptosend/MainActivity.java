@@ -1,32 +1,60 @@
 package com.kontraproduktion.cryptosend;
 
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.app.FragmentStatePagerAdapter;
+import android.support.v4.content.FileProvider;
+import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
-import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-
+import android.view.animation.AlphaAnimation;
+import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import java.io.File;
+
+import helper.CacheFileHelper;
+import interfaces.EncryptionTypeFragment;
+import interfaces.FileProcessor;
+
 
 public class MainActivity extends AppCompatActivity {
 
+    static final String TAG = MainActivity.class.getSimpleName();
+
+    static final int CHOOSE_FILE_REQUEST = 1;
+
+    private EncryptionTypeFragment mEncryptionTypeFragment = null;
+    private FileProcessor mProcessor = new FileProcessor();
+    private TextView mStatusLabel = null;
+    private Uri mFileToWorkOn = null;
+    private ProgressBar mProgressBar;
+
+    private enum ProcessingType {
+        ENCRYPT, DECRYPT
+    };
+
     /**
-     * The {@link android.support.v4.view.PagerAdapter} that will provide
+     * The {@link PagerAdapter} that will provide
      * fragments for each of the sections. We use a
      * {@link FragmentPagerAdapter} derivative, which will keep every
      * loaded fragment in memory. If this becomes too memory intensive, it
      * may be best to switch to a
-     * {@link android.support.v4.app.FragmentStatePagerAdapter}.
+     * {@link FragmentStatePagerAdapter}.
      */
     private TabsAdapter mSectionsPagerAdapter;
 
@@ -40,26 +68,46 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mFileToWorkOn = null;
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         // Create the adapter that will return a fragment for each of the three
         // primary sections of the activity.
         mSectionsPagerAdapter = new TabsAdapter(getSupportFragmentManager());
 
+        mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
+        mStatusLabel = (TextView) findViewById(R.id.statusTextview);
+
         // Set up the ViewPager with the sections adapter.
         mViewPager = (ViewPager) findViewById(R.id.container);
         mViewPager.setAdapter(mSectionsPagerAdapter);
 
-
-       /* FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        Button selectFileBtn = (Button) findViewById(R.id.chooseFileBtn);
+        selectFileBtn.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+            public void onClick(View v) {
+                Intent fileIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                fileIntent.setType("*/*"); // intent type to filter application based on your requirement
+                startActivityForResult(fileIntent, CHOOSE_FILE_REQUEST);
             }
-        }); */
+        });
 
+        Button doEncryptBtn = (Button) findViewById(R.id.do_encrypt_btn);
+        doEncryptBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                triggerFileProcessing(ProcessingType.ENCRYPT);
+            }
+        });
+
+        Button doDecryptBtn = (Button) findViewById(R.id.do_decrypt_btn);
+        doDecryptBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                triggerFileProcessing(ProcessingType.DECRYPT);
+            }
+        });
     }
 
 
@@ -85,6 +133,15 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+    }
 
     /**
      * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
@@ -104,7 +161,8 @@ public class MainActivity extends AppCompatActivity {
             Fragment tabFragment = null;
             switch (position) {
                 case 0:
-                    tabFragment = PasswordEncryptionTab.newInstance();
+                    mEncryptionTypeFragment = PasswordEncryptionTab.newInstance();
+                    tabFragment = mEncryptionTypeFragment;
                     break;
                 case 1:
                     tabFragment = PlaceholderFragment.newInstance(position + 1);
@@ -118,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public int getCount() {
-            // Show 3 total pages.
+            // Concentrate on pwd encryption for now
             return 2;
         }
 
@@ -163,9 +221,91 @@ public class MainActivity extends AppCompatActivity {
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+
             TextView textView = (TextView) rootView.findViewById(R.id.section_label);
             textView.setText(getString(R.string.section_format, getArguments().getInt(ARG_SECTION_NUMBER)));
+
             return rootView;
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == CHOOSE_FILE_REQUEST && data != null) {
+            mFileToWorkOn = data.getData();
+            if(mStatusLabel != null) {
+                mStatusLabel.setText(CacheFileHelper.resolveFileName(mFileToWorkOn, this));
+            }
+        }
+    }
+
+    public void triggerFileProcessing(ProcessingType type) {
+        if(mFileToWorkOn == null || mEncryptionTypeFragment == null) {
+            Log.d(TAG, "attempted processing without file or type");
+            return;
+        }
+
+        FileProcessingTask processingTask = new FileProcessingTask(this, type);
+        processingTask.execute(mEncryptionTypeFragment);
+    }
+
+    private void startFileShareIntent(Uri fileToShareUri) {
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        shareIntent.putExtra(Intent.EXTRA_STREAM, fileToShareUri);
+        shareIntent.setType("*/*");
+
+        startActivity(Intent.createChooser(shareIntent, getResources().getText(R.string.send_intent_title)));
+    }
+
+
+    private class FileProcessingTask extends AsyncTask<EncryptionTypeFragment, Void, Uri> {
+        private Activity mActivity;
+        private ProcessingType mType;
+        private AlphaAnimation mInAnimation;
+        private AlphaAnimation mOutAnimation;
+
+        public FileProcessingTask(Activity activity, ProcessingType type) {
+            this.mActivity = activity;
+            this.mType = type;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            mInAnimation = new AlphaAnimation(0f, 1f);
+            mInAnimation.setDuration(200);
+            mProgressBar.setAnimation(mInAnimation);
+            mProgressBar.setVisibility(View.VISIBLE);
+
+            if(mType == ProcessingType.DECRYPT) {
+                mProcessor.setAlgorithm(mEncryptionTypeFragment.getDecryptionAlgorithm());
+                mEncryptionTypeFragment.setupDecryptionAlgorithm();
+            }
+
+            if (mType == ProcessingType.ENCRYPT) {
+                mProcessor.setAlgorithm(mEncryptionTypeFragment.getEncryptionAlgorithm());
+                mEncryptionTypeFragment.setupEncryptionAlgorithm();
+            }
+        }
+
+        @Override
+        protected Uri doInBackground(EncryptionTypeFragment... params) {
+            mProcessor.loadFile(mFileToWorkOn, mActivity);
+            File processedFile = mProcessor.processFile();
+            Uri fileToShareUri = FileProvider.getUriForFile(getApplicationContext(),
+                    "com.kontraproduktion.cryptosend.fileprovider", processedFile);
+            return fileToShareUri;
+        }
+
+        @Override
+        protected void onPostExecute(Uri fileToShareUri) {
+            super.onPostExecute(fileToShareUri);
+            mOutAnimation = new AlphaAnimation(1f, 0f);
+            mOutAnimation.setDuration(200);
+            mProgressBar.setAnimation(mOutAnimation);
+            mProgressBar.setVisibility(View.GONE);
+
+            startFileShareIntent(fileToShareUri);
         }
     }
 }

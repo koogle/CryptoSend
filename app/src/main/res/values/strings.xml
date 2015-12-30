@@ -5,4 +5,11 @@
     <string name="password_encryption_header">Encrypt a file with a string</string>
     <string name="pubkey_encryption_header">Encrypt a file with a public key</string>
     <string name="send_intent_title">Send to...</string>
+    <string name="encrypt">ENCRYPT</string>
+    <string name="decrypt">DECRYPT</string>
+    <string name="password_hint">Password ...</string>
+    <string name="choose_file_hint">Choose a file</string>
+    <string name="wait_text">Please wait ...</string>
+    <string name="swipe_hint">Swipe left/right for more options</string>
+    <string name="motto">Keep it a secret!</string>
 </resources>

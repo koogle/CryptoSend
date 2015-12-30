@@ -1,11 +1,9 @@
 package com.kontraproduktion.cryptosend;
 
-import android.util.Log;
+import android.content.Context;
 
 import java.io.File;
-import java.io.IOException;
 
-import helper.CacheFileHelper;
 import helper.CryptoHelper;
 import interfaces.DecryptInterface;
 import interfaces.FileProcessingAlgorithm;
@@ -17,7 +15,21 @@ import interfaces.PasswordInterface;
 public class PasswordFileDecryptor extends FileProcessingAlgorithm implements PasswordInterface, DecryptInterface {
     private static final String TAG = PasswordFileDecryptor.class.getSimpleName();
 
-    private String password = null;
+    private CryptoHelper mCryptoHelper = CryptoHelper.getInstance();
+    private String mPassword = null;
+
+    public PasswordFileDecryptor() {
+        this.mExtension = ".crypt";
+        this.mAppendExtension = false;
+
+        // Read addition header information
+        this.mPadding = 16;
+    }
+
+    public PasswordFileDecryptor(Context context) {
+        this();
+        this.setContext(context);
+    }
 
     @Override
     public File decrypt() {
@@ -25,25 +37,22 @@ public class PasswordFileDecryptor extends FileProcessingAlgorithm implements Pa
     }
 
     @Override
-    public byte[] process() {
-        if(password == null || inputStream == null || context == null || filename == null || filename.isEmpty())
-            return null;
-
-        byte[] decryptedData;
-        try {
-            byte[] inputData = CacheFileHelper.readBytes(inputStream);
-            CryptoHelper cryptoHelper = CryptoHelper.getInstance();
-            decryptedData = cryptoHelper.decryptWithAES(inputData, password);
-        } catch (IOException e) {
-            Log.e(TAG, "IOException while reading file");
-            e.printStackTrace();
-            return null;
-        }
-        return decryptedData;
+    public void setPassword(String password) {
+        this.mPassword = password;
     }
 
     @Override
-    public void setPassword(String password) {
+    protected boolean setupProcessing() {
+        return mPassword != null;
+    }
 
+    @Override
+    protected byte[] processBlock(byte[] inputData) {
+        return mCryptoHelper.decryptWithAES(inputData, mPassword);
+    }
+
+    @Override
+    protected boolean tearDownProcessing() {
+        return true;
     }
 }

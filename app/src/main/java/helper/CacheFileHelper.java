@@ -1,14 +1,17 @@
 package helper;
 
+import android.app.Activity;
 import android.content.Context;
-import android.os.Environment;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.OpenableColumns;
 import android.util.Log;
+import android.webkit.MimeTypeMap;
 
 import com.kontraproduktion.cryptosend.R;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -20,45 +23,73 @@ import java.util.Comparator;
 public class CacheFileHelper {
     private static final String TAG = CacheFileHelper.class.getSimpleName();
 
-    private static final CacheFileHelper instance = new CacheFileHelper();
-    private File latestFile = null;
+    private static CacheFileHelper sInstance = new CacheFileHelper();
+    private File mLatestFile = null;
 
-    public static byte[] readBytes(InputStream inputStream) throws IOException {
-        ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
-        int bufferSize = 1024;
-        byte[] buffer = new byte[bufferSize];
+    public static String resolveFileName(Uri uri, Activity activity) {
+        String filename = null;
+        String uriString = uri.toString();
 
-        int len = 0;
-        while ((len = inputStream.read(buffer)) != -1) {
-            byteBuffer.write(buffer, 0, len);
+        if (uriString.startsWith("content://")) {
+            Cursor cursor = null;
+            try {
+                cursor = activity.getContentResolver().query(uri, null, null, null, null);
+                if (cursor != null && cursor.moveToFirst()) {
+                    String mimeType = MimeTypeMap.getSingleton().getExtensionFromMimeType(
+                                                activity.getContentResolver().getType(uri));
+                    filename = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+
+                    if(mimeType != null && !filename.endsWith("." + mimeType)) {
+                        filename += "." + mimeType;
+                    }
+                }
+            } finally {
+                if(cursor != null) {
+                    cursor.close();
+                }
+            }
+        } else if (uriString.startsWith("file://")) {
+            filename = (new File(uriString)).getName();
         }
-        return byteBuffer.toByteArray();
+        return filename;
     }
 
     private CacheFileHelper() {}
 
     private long getMaxCacheSize(Context context) {
-        return context.getResources().getInteger(R.integer.max_cache_size) * 1000000;
+        return context.getResources().getInteger(R.integer.max_cache_size) * 1024 * 1024;
     }
 
-    public static CacheFileHelper getInstance() {
-        return instance;
+    public static CacheFileHelper getsInstance() {
+        return sInstance;
     }
 
-    public File createNewCacheFile(String filename, String extension, Context context) throws IOException {
+    public File createNewCacheFile(String filename, String extension, Context context, boolean mAppendExtension) throws IOException {
         balanceCacheSize(context);
 
-        File cacheDir = context.getFilesDir(); // context.getCacheDir();
-        latestFile = new File(cacheDir, filename + extension); // File.createTempFile(filename, extension, cacheDir);
-        return latestFile;
+        File cacheDir = context.getFilesDir(); // mContext.getCacheDir();
+        String newFilename = filename;
+
+        if(mAppendExtension) {
+            newFilename += extension;
+        } else {
+            if(filename.endsWith(extension)) {
+                newFilename = filename.substring(0, filename.length() - extension.length());
+            } else {
+                Log.d(TAG, "Filename <" + filename + "> did not end with extension " + extension + "; continue processing...");
+            }
+        }
+
+        mLatestFile = new File(cacheDir, newFilename); // File.createTempFile(mFilename, mExtension, cacheDir);
+        return mLatestFile;
     }
 
     public File getLatestFile() {
-        return latestFile;
+        return mLatestFile;
     }
 
     public void balanceCacheSize(Context context) {
-        File cacheDir = context.getFilesDir(); // context.getCacheDir();
+        File cacheDir = context.getFilesDir(); // mContext.getCacheDir();
         if(currentCacheSize(cacheDir) > getMaxCacheSize(context)) {
             trimCache(context.getResources().getInteger(R.integer.max_cache_size) - currentCacheSize(cacheDir), cacheDir);
 

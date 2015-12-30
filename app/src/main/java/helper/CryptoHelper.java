@@ -7,7 +7,6 @@ import org.mindrot.jbcrypt.BCrypt;
 import java.security.MessageDigest;
 
 import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
@@ -16,12 +15,12 @@ import javax.crypto.spec.SecretKeySpec;
 public class CryptoHelper {
     private static final String TAG = CryptoHelper.class.getSimpleName();
     // Singleton pattern
-    private static final CryptoHelper instance = new CryptoHelper();
+    private static CryptoHelper sInstance = new CryptoHelper();
 
     private CryptoHelper() {}
 
     public static CryptoHelper getInstance() {
-        return instance;
+        return sInstance;
     }
 
     private byte[] processWithAES(byte[] inputData, String password, int mode) {
@@ -64,8 +63,7 @@ public class CryptoHelper {
         try {
             String bcryptedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
 
-            MessageDigest digest = java.security.MessageDigest
-                    .getInstance("SHA-256");
+            MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
             digest.update(bcryptedPassword.getBytes());
             byte key[] = digest.digest();
 
