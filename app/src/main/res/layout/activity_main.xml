@@ -76,10 +76,6 @@
             android:layout_alignStart="@+id/chooseFileBtn"
             android:layout_gravity="center_horizontal"
             android:elevation="4dp"
-            android:shadowColor="@color/colorPrimaryDark"
-            android:shadowDy="1"
-            android:shadowDx="1"
-            android:shadowRadius="3"
             />
 
         <Button

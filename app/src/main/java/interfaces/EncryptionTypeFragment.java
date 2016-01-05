@@ -8,6 +8,8 @@ import android.support.v4.app.Fragment;
 public abstract class EncryptionTypeFragment extends Fragment {
     protected FileProcessingAlgorithm mEncryptionAlgorithm = null;
     protected FileProcessingAlgorithm mDecryptionAlgorithm = null;
+    protected boolean mSupportsEncryption = true;
+    protected boolean mSupportsDecryption = true;
 
     public FileProcessingAlgorithm getEncryptionAlgorithm() {
         return mEncryptionAlgorithm;
@@ -15,6 +17,14 @@ public abstract class EncryptionTypeFragment extends Fragment {
 
     public FileProcessingAlgorithm getDecryptionAlgorithm() {
         return mDecryptionAlgorithm;
+    }
+
+    public boolean supportsEncryption() {
+        return mSupportsEncryption;
+    }
+
+    public boolean supportsDecryption() {
+        return mSupportsDecryption;
     }
 
     public abstract void setupEncryptionAlgorithm();

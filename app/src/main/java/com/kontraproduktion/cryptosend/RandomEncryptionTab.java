@@ -9,18 +9,11 @@ import android.widget.EditText;
 import interfaces.EncryptionTypeFragment;
 
 /**
- * Created by Jakob on 10/11/15.
+ * Created by koogle on 05/01/16.
  */
-public class PasswordEncryptionTab extends EncryptionTypeFragment {
-    static final String TAG = PasswordEncryptionTab.class.getSimpleName();
-
+public class RandomEncryptionTab extends EncryptionTypeFragment {
+    static final String TAG = EncryptionTypeFragment.class.getSimpleName();
     private EditText passwordInputField = null;
-
-    public PasswordEncryptionTab() {
-        super();
-        mEncryptionAlgorithm = new PasswordFileEncryptor();
-        mDecryptionAlgorithm = new PasswordFileDecryptor();
-    }
 
     /**
      * Returns a new instance of this fragment for the given section
@@ -38,26 +31,22 @@ public class PasswordEncryptionTab extends EncryptionTypeFragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        mSupportsDecryption = false;
+
         final View rootView = inflater.inflate(R.layout.password_encryption_tab, container, false);
 
         passwordInputField = (EditText) rootView.findViewById(R.id.passwordField);
         return rootView;
     }
 
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-    }
 
     @Override
     public void setupEncryptionAlgorithm() {
-        ((PasswordFileEncryptor) mEncryptionAlgorithm).setPassword(
-                passwordInputField.getText().toString());
+
     }
 
     @Override
     public void setupDecryptionAlgorithm() {
-        ((PasswordFileDecryptor) mDecryptionAlgorithm).setPassword(
-                passwordInputField.getText().toString());
+
     }
 }

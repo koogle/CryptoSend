@@ -12,4 +12,8 @@
     <string name="wait_text">Please wait ...</string>
     <string name="swipe_hint">Swipe left/right for more options</string>
     <string name="motto">Keep it a secret!</string>
+    <string name="wrong_password">Incorrect password!</string>
+    <string name="started_processing">Started processing ...</string>
+    <string name="failed_processing">Processing failed!</string>
+    <string name="no_file_selected">Please choose a file!</string>
 </resources>

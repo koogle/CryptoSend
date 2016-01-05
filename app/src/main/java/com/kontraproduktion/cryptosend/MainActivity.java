@@ -24,6 +24,7 @@ import android.view.animation.AlphaAnimation;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 
@@ -33,13 +34,14 @@ import interfaces.FileProcessor;
 
 
 public class MainActivity extends AppCompatActivity {
-
     static final String TAG = MainActivity.class.getSimpleName();
 
     static final int CHOOSE_FILE_REQUEST = 1;
 
     private EncryptionTypeFragment mEncryptionTypeFragment = null;
     private FileProcessor mProcessor = new FileProcessor();
+    private Button mEncryptionButton = null;
+    private Button mDecryptionButton = null;
     private TextView mStatusLabel = null;
     private Uri mFileToWorkOn = null;
     private ProgressBar mProgressBar;
@@ -93,23 +95,113 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Button doEncryptBtn = (Button) findViewById(R.id.do_encrypt_btn);
-        doEncryptBtn.setOnClickListener(new View.OnClickListener() {
+        mEncryptionButton = (Button) findViewById(R.id.do_encrypt_btn);
+        mEncryptionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 triggerFileProcessing(ProcessingType.ENCRYPT);
             }
         });
 
-        Button doDecryptBtn = (Button) findViewById(R.id.do_decrypt_btn);
-        doDecryptBtn.setOnClickListener(new View.OnClickListener() {
+        mDecryptionButton = (Button) findViewById(R.id.do_decrypt_btn);
+        mDecryptionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 triggerFileProcessing(ProcessingType.DECRYPT);
             }
         });
+
+        // Test if invoked with intent
+        if(getIntent().getAction() == Intent.ACTION_SEND && getIntent().getParcelableExtra(Intent.EXTRA_STREAM) != null) {
+            Log.d(TAG, "Started from intent" + getIntent().getAction());
+            setFileToWorkOn((Uri) getIntent().getParcelableExtra(Intent.EXTRA_STREAM));
+        }
     }
 
+    private void startFileShareIntent(Uri fileToShareUri) {
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        shareIntent.putExtra(Intent.EXTRA_STREAM, fileToShareUri);
+        shareIntent.setType("*/*");
+
+        startActivity(Intent.createChooser(shareIntent, getResources().getText(R.string.send_intent_title)));
+    }
+
+    private void setFileToWorkOn(Uri file) {
+        mFileToWorkOn = file;
+        if(mStatusLabel != null) {
+            mStatusLabel.setText(CacheFileHelper.resolveFileName(mFileToWorkOn, this));
+        }
+    }
+
+    private class FileProcessingTask extends AsyncTask<EncryptionTypeFragment, Void, Uri> {
+        private Activity mActivity;
+        private ProcessingType mType;
+        private AlphaAnimation mInAnimation;
+        private AlphaAnimation mOutAnimation;
+
+        public FileProcessingTask(Activity activity, ProcessingType type) {
+            this.mActivity = activity;
+            this.mType = type;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            mInAnimation = new AlphaAnimation(0f, 1f);
+            mInAnimation.setDuration(200);
+            mProgressBar.setAnimation(mInAnimation);
+            mProgressBar.setVisibility(View.VISIBLE);
+
+            if(mType == ProcessingType.DECRYPT) {
+                mProcessor.setAlgorithm(mEncryptionTypeFragment.getDecryptionAlgorithm());
+                mEncryptionTypeFragment.setupDecryptionAlgorithm();
+            }
+
+            if (mType == ProcessingType.ENCRYPT) {
+                mProcessor.setAlgorithm(mEncryptionTypeFragment.getEncryptionAlgorithm());
+                mEncryptionTypeFragment.setupEncryptionAlgorithm();
+            }
+        }
+
+        @Override
+        protected Uri doInBackground(EncryptionTypeFragment... params) {
+            mProcessor.loadFile(mFileToWorkOn, mActivity);
+            File processedFile = mProcessor.processFile();
+
+            if(processedFile == null) {
+                return null;
+            }
+
+            Uri fileToShareUri = FileProvider.getUriForFile(getApplicationContext(),
+                    "com.kontraproduktion.cryptosend.fileprovider", processedFile);
+            return fileToShareUri;
+        }
+
+        @Override
+        protected void onPostExecute(Uri fileToShareUri) {
+            super.onPostExecute(fileToShareUri);
+
+            mOutAnimation = new AlphaAnimation(1f, 0f);
+            mOutAnimation.setDuration(200);
+            mProgressBar.setAnimation(mOutAnimation);
+            mProgressBar.setVisibility(View.GONE);
+
+            if(fileToShareUri != null) {
+                startFileShareIntent(fileToShareUri);
+            }
+        }
+    }
+
+    private void triggerFileProcessing(ProcessingType type) {
+        if(mFileToWorkOn == null || mEncryptionTypeFragment == null) {
+            Toast.makeText(this, getString(R.string.no_file_selected), Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "attempted processing without file or type");
+            return;
+        }
+
+        FileProcessingTask processingTask = new FileProcessingTask(this, type);
+        processingTask.execute(mEncryptionTypeFragment);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -162,14 +254,19 @@ public class MainActivity extends AppCompatActivity {
             switch (position) {
                 case 0:
                     mEncryptionTypeFragment = PasswordEncryptionTab.newInstance();
-                    tabFragment = mEncryptionTypeFragment;
                     break;
                 case 1:
-                    tabFragment = PlaceholderFragment.newInstance(position + 1);
+                    mEncryptionTypeFragment = RandomEncryptionTab.newInstance();
                     break;
                 default:
                     tabFragment = PlaceholderFragment.newInstance(position + 1);
             }
+
+            tabFragment = mEncryptionTypeFragment;
+            mEncryptionButton.setVisibility(mEncryptionTypeFragment.supportsEncryption() ?
+                    View.VISIBLE : View.GONE);
+            mDecryptionButton.setVisibility(mEncryptionTypeFragment.supportsDecryption() ?
+                    View.VISIBLE : View.GONE);
 
             return tabFragment;
         }
@@ -232,80 +329,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CHOOSE_FILE_REQUEST && data != null) {
-            mFileToWorkOn = data.getData();
-            if(mStatusLabel != null) {
-                mStatusLabel.setText(CacheFileHelper.resolveFileName(mFileToWorkOn, this));
-            }
-        }
-    }
-
-    public void triggerFileProcessing(ProcessingType type) {
-        if(mFileToWorkOn == null || mEncryptionTypeFragment == null) {
-            Log.d(TAG, "attempted processing without file or type");
-            return;
-        }
-
-        FileProcessingTask processingTask = new FileProcessingTask(this, type);
-        processingTask.execute(mEncryptionTypeFragment);
-    }
-
-    private void startFileShareIntent(Uri fileToShareUri) {
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        shareIntent.putExtra(Intent.EXTRA_STREAM, fileToShareUri);
-        shareIntent.setType("*/*");
-
-        startActivity(Intent.createChooser(shareIntent, getResources().getText(R.string.send_intent_title)));
-    }
-
-
-    private class FileProcessingTask extends AsyncTask<EncryptionTypeFragment, Void, Uri> {
-        private Activity mActivity;
-        private ProcessingType mType;
-        private AlphaAnimation mInAnimation;
-        private AlphaAnimation mOutAnimation;
-
-        public FileProcessingTask(Activity activity, ProcessingType type) {
-            this.mActivity = activity;
-            this.mType = type;
-        }
-
-        @Override
-        protected void onPreExecute() {
-            mInAnimation = new AlphaAnimation(0f, 1f);
-            mInAnimation.setDuration(200);
-            mProgressBar.setAnimation(mInAnimation);
-            mProgressBar.setVisibility(View.VISIBLE);
-
-            if(mType == ProcessingType.DECRYPT) {
-                mProcessor.setAlgorithm(mEncryptionTypeFragment.getDecryptionAlgorithm());
-                mEncryptionTypeFragment.setupDecryptionAlgorithm();
-            }
-
-            if (mType == ProcessingType.ENCRYPT) {
-                mProcessor.setAlgorithm(mEncryptionTypeFragment.getEncryptionAlgorithm());
-                mEncryptionTypeFragment.setupEncryptionAlgorithm();
-            }
-        }
-
-        @Override
-        protected Uri doInBackground(EncryptionTypeFragment... params) {
-            mProcessor.loadFile(mFileToWorkOn, mActivity);
-            File processedFile = mProcessor.processFile();
-            Uri fileToShareUri = FileProvider.getUriForFile(getApplicationContext(),
-                    "com.kontraproduktion.cryptosend.fileprovider", processedFile);
-            return fileToShareUri;
-        }
-
-        @Override
-        protected void onPostExecute(Uri fileToShareUri) {
-            super.onPostExecute(fileToShareUri);
-            mOutAnimation = new AlphaAnimation(1f, 0f);
-            mOutAnimation.setDuration(200);
-            mProgressBar.setAnimation(mOutAnimation);
-            mProgressBar.setVisibility(View.GONE);
-
-            startFileShareIntent(fileToShareUri);
+            setFileToWorkOn(data.getData());
         }
     }
 }

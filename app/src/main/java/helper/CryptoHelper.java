@@ -14,6 +14,9 @@ import javax.crypto.spec.SecretKeySpec;
  */
 public class CryptoHelper {
     private static final String TAG = CryptoHelper.class.getSimpleName();
+    // Change this in your distributions
+    private static final String PEPPER = "Dr@7PykW!5zG>?";
+
     // Singleton pattern
     private static CryptoHelper sInstance = new CryptoHelper();
 
@@ -23,8 +26,8 @@ public class CryptoHelper {
         return sInstance;
     }
 
-    private byte[] processWithAES(byte[] inputData, String password, int mode) {
-        SecretKeySpec newSecretKeySpec = this.generateAESKeySpecification(password);
+    private byte[] processWithAES(byte[] inputData, String password, String salt, int mode) {
+        SecretKeySpec newSecretKeySpec = this.generateAESKeySpecification(password, salt);
 
         byte[] processedData = null;
         try {
@@ -39,29 +42,29 @@ public class CryptoHelper {
     }
 
 
-    public byte[] encryptWithAES(byte[] inputData, String password) {
+    public byte[] encryptWithAES(byte[] inputData, String password, String salt) {
         try {
-            return processWithAES(inputData, password, Cipher.getInstance("AES").ENCRYPT_MODE);
+            return processWithAES(inputData, password, salt, Cipher.getInstance("AES").ENCRYPT_MODE);
         } catch (Exception e) {
             Log.e(TAG, "AES not available");
             return null;
         }
     }
 
-    public byte[] decryptWithAES(byte[] inputData, String password) {
+    public byte[] decryptWithAES(byte[] inputData, String password, String salt) {
         try {
-            return processWithAES(inputData, password, Cipher.getInstance("AES").DECRYPT_MODE);
+            return processWithAES(inputData, password, salt, Cipher.getInstance("AES").DECRYPT_MODE);
         } catch (Exception e) {
             Log.e(TAG, "AES not available");
             return null;
         }
     }
 
-    public SecretKeySpec generateAESKeySpecification(String password) {
+    public SecretKeySpec generateAESKeySpecification(String password, String salt) {
         SecretKeySpec secretKeySpec = null;
 
         try {
-            String bcryptedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+            String bcryptedPassword = BCrypt.hashpw(PEPPER + password, salt);
 
             MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
             digest.update(bcryptedPassword.getBytes());
@@ -70,9 +73,14 @@ public class CryptoHelper {
             secretKeySpec = new SecretKeySpec(key, "AES");
         } catch (Exception e) {
             Log.e(TAG, "AES secret key spec error");
+            e.printStackTrace();
         }
 
         return secretKeySpec;
+    }
+
+    public String genSalt() {
+        return BCrypt.gensalt();
     }
 
 }

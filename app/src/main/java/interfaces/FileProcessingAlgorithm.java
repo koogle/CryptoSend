@@ -1,10 +1,13 @@
 package interfaces;
 
+import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
+import android.widget.Toast;
+
+import com.kontraproduktion.cryptosend.R;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -24,16 +27,21 @@ public abstract class FileProcessingAlgorithm {
     protected OutputStream mOutputStream = null;
     protected boolean mAppendExtension = true;
     protected InputStream mInputStream = null;
+    protected String mStartupMessage = "";
+    protected String mFailMessege = "";
+    protected Activity mActivity = null;
     protected String mFilename = null;
     protected File mOutputFile = null;
-    protected Context mContext = null;
     protected String mExtension = "";
+
 
     // padding to read more than standard block size
     protected int mPadding = 0;
 
-    public void setContext(Context mContext) {
-        this.mContext = mContext;
+    public void setActivity(Activity activity) {
+        this.mActivity = activity;
+        this.mFailMessege = mActivity.getString(R.string.failed_processing);
+        this.mStartupMessage = mActivity.getString(R.string.started_processing);
     }
 
     private void setFilename(String mFilename) {
@@ -43,7 +51,7 @@ public abstract class FileProcessingAlgorithm {
     }
 
     private void createOutputStream() throws IOException {
-        mOutputFile = CacheFileHelper.getsInstance().createNewCacheFile(mFilename, mExtension, mContext, mAppendExtension);
+        mOutputFile = CacheFileHelper.getsInstance().createNewCacheFile(mFilename, mExtension, mActivity, mAppendExtension);
         mOutputStream = new BufferedOutputStream(new FileOutputStream(mOutputFile));
     }
 
@@ -57,6 +65,11 @@ public abstract class FileProcessingAlgorithm {
     }
 
     public File apply() {
+        mActivity.runOnUiThread(new Runnable() {
+            public void run() {
+                Toast.makeText(mActivity, mStartupMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
 
         try {
             createOutputStream();
@@ -90,6 +103,19 @@ public abstract class FileProcessingAlgorithm {
         byte[] buffer = new byte[BLOCK_SIZE + mPadding];
         try {
             while (mInputStream.read(buffer) != -1) {
+                byte[] outputBuffer = processBlock(buffer);
+
+                if(outputBuffer == null) {
+                    mActivity.runOnUiThread(new Runnable() {
+                        public void run() {
+                            Toast.makeText(mActivity, mFailMessege, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+
+                    mOutputFile = null;
+                    return;
+                }
+
                 mOutputStream.write(processBlock(buffer));
             }
         } catch (IOException e) {

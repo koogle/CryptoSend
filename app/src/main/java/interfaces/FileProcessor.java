@@ -34,7 +34,7 @@ public class FileProcessor {
         }
 
         if(mAlgorithm != null) {
-            mAlgorithm.setContext(activity.getBaseContext());
+            mAlgorithm.setActivity(activity);
             mAlgorithm.setInputStream(filename, inputStream);
         }
     }

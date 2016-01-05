@@ -1,6 +1,9 @@
 package com.kontraproduktion.cryptosend;
 
+import android.app.Activity;
 import android.content.Context;
+import android.util.Log;
+import android.widget.Toast;
 
 import java.io.File;
 
@@ -22,10 +25,17 @@ public class PasswordFileEncryptor extends FileProcessingAlgorithm implements Pa
         this.mExtension = ".crypt";
     }
 
-    public PasswordFileEncryptor(Context context) {
+    public PasswordFileEncryptor(Activity activity) {
         this();
-        this.setContext(context);
+        this.setActivity(activity);
     }
+
+    @Override
+    public void setActivity(Activity activity) {
+        super.setActivity(activity);
+        this.mFailMessege = activity.getString(R.string.wrong_password);
+    }
+
 
     @Override
     public void setPassword(String mPassword) {
@@ -45,11 +55,14 @@ public class PasswordFileEncryptor extends FileProcessingAlgorithm implements Pa
 
     @Override
     protected byte[] processBlock(byte[] inputData) {
-        byte[] outputData = mCryptoHelper.encryptWithAES(inputData, mPassword);
-        if(outputData != null) {
+        String salt = CryptoHelper.getInstance().genSalt();
+        byte[] encryptedData = mCryptoHelper.encryptWithAES(inputData, mPassword, salt);
+        byte [] saltBytes = salt.getBytes();
 
-        }
-        return outputData;
+        byte [] resultData = new byte[saltBytes.length + encryptedData.length];
+        System.arraycopy(saltBytes, 0, resultData, 0, saltBytes.length);
+        System.arraycopy(encryptedData, 0, resultData, saltBytes.length, encryptedData.length);
+        return resultData;
     }
 
     @Override
