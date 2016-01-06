@@ -3,6 +3,7 @@ package com.kontraproduktion.cryptosend;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.nfc.Tag;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -15,11 +16,9 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -38,7 +37,10 @@ public class MainActivity extends AppCompatActivity {
 
     static final int CHOOSE_FILE_REQUEST = 1;
 
-    private EncryptionTypeFragment mEncryptionTypeFragment = null;
+    private EncryptionTypeFragment mTabsFragment [] = {PasswordEncryptionTab.newInstance(),
+            RandomEncryptionTab.newInstance() };
+
+    private EncryptionTypeFragment mEncryptionTypeFragment = mTabsFragment[0];
     private FileProcessor mProcessor = new FileProcessor();
     private Button mEncryptionButton = null;
     private Button mDecryptionButton = null;
@@ -84,6 +86,29 @@ public class MainActivity extends AppCompatActivity {
         // Set up the ViewPager with the sections adapter.
         mViewPager = (ViewPager) findViewById(R.id.container);
         mViewPager.setAdapter(mSectionsPagerAdapter);
+        mViewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                position = Math.max(0, Math.min(position, mTabsFragment.length -1));
+
+                mEncryptionTypeFragment = mTabsFragment[position];
+                mEncryptionButton.setVisibility(mEncryptionTypeFragment.supportsEncryption() ?
+                        View.VISIBLE : View.GONE);
+                mDecryptionButton.setVisibility(mEncryptionTypeFragment.supportsDecryption() ?
+                        View.VISIBLE : View.GONE);
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+
+            }
+        });
+
 
         Button selectFileBtn = (Button) findViewById(R.id.chooseFileBtn);
         selectFileBtn.setOnClickListener(new View.OnClickListener() {
@@ -193,6 +218,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void triggerFileProcessing(ProcessingType type) {
+
         if(mFileToWorkOn == null || mEncryptionTypeFragment == null) {
             Toast.makeText(this, getString(R.string.no_file_selected), Toast.LENGTH_SHORT).show();
             Log.d(TAG, "attempted processing without file or type");
@@ -235,11 +261,18 @@ public class MainActivity extends AppCompatActivity {
         super.onStop();
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == CHOOSE_FILE_REQUEST && data != null) {
+            setFileToWorkOn(data.getData());
+        }
+    }
+
     /**
      * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
      * one of the sections/tabs/pages.
      */
-    public class TabsAdapter extends FragmentPagerAdapter {
+    public class TabsAdapter extends FragmentPagerAdapter  {
 
         public TabsAdapter(FragmentManager fm) {
             super(fm);
@@ -250,31 +283,15 @@ public class MainActivity extends AppCompatActivity {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
             // return PlaceholderFragment.newInstance(position + 1);
-            Fragment tabFragment = null;
-            switch (position) {
-                case 0:
-                    mEncryptionTypeFragment = PasswordEncryptionTab.newInstance();
-                    break;
-                case 1:
-                    mEncryptionTypeFragment = RandomEncryptionTab.newInstance();
-                    break;
-                default:
-                    tabFragment = PlaceholderFragment.newInstance(position + 1);
-            }
+            position = Math.max(0, Math.min(mTabsFragment.length - 1, position));
 
-            tabFragment = mEncryptionTypeFragment;
-            mEncryptionButton.setVisibility(mEncryptionTypeFragment.supportsEncryption() ?
-                    View.VISIBLE : View.GONE);
-            mDecryptionButton.setVisibility(mEncryptionTypeFragment.supportsDecryption() ?
-                    View.VISIBLE : View.GONE);
-
-            return tabFragment;
+            return mTabsFragment[position];
         }
 
         @Override
         public int getCount() {
             // Concentrate on pwd encryption for now
-            return 2;
+            return mTabsFragment.length;
         }
 
         @Override
@@ -286,50 +303,6 @@ public class MainActivity extends AppCompatActivity {
                     return "Private/Public encryption";
             }
             return null;
-        }
-    }
-
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
-        /**
-         * The fragment argument representing the section number for this
-         * fragment.
-         */
-        private static final String ARG_SECTION_NUMBER = "section_number";
-
-        /**
-         * Returns a new instance of this fragment for the given section
-         * number.
-         */
-        public static PlaceholderFragment newInstance(int sectionNumber) {
-            PlaceholderFragment fragment = new PlaceholderFragment();
-            Bundle args = new Bundle();
-            args.putInt(ARG_SECTION_NUMBER, sectionNumber);
-            fragment.setArguments(args);
-            return fragment;
-        }
-
-        public PlaceholderFragment() {
-        }
-
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                 Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-
-            TextView textView = (TextView) rootView.findViewById(R.id.section_label);
-            textView.setText(getString(R.string.section_format, getArguments().getInt(ARG_SECTION_NUMBER)));
-
-            return rootView;
-        }
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == CHOOSE_FILE_REQUEST && data != null) {
-            setFileToWorkOn(data.getData());
         }
     }
 }

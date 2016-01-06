@@ -16,4 +16,5 @@
     <string name="started_processing">Started processing ...</string>
     <string name="failed_processing">Processing failed!</string>
     <string name="no_file_selected">Please choose a file!</string>
+    <string name="generate_password">Generate password</string>
 </resources>

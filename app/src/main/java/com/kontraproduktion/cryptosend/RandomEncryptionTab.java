@@ -1,10 +1,16 @@
 package com.kontraproduktion.cryptosend;
 
+import android.content.pm.LabeledIntent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
+
+import org.w3c.dom.Text;
 
 import interfaces.EncryptionTypeFragment;
 
@@ -13,14 +19,20 @@ import interfaces.EncryptionTypeFragment;
  */
 public class RandomEncryptionTab extends EncryptionTypeFragment {
     static final String TAG = EncryptionTypeFragment.class.getSimpleName();
-    private EditText passwordInputField = null;
+    private TextView passwordLabel = null;
+
+    public RandomEncryptionTab() {
+        super();
+        mEncryptionAlgorithm = new PasswordFileEncryptor();
+        mSupportsDecryption = false;
+    }
 
     /**
      * Returns a new instance of this fragment for the given section
      * number.
      */
-    public static PasswordEncryptionTab newInstance() {
-        PasswordEncryptionTab fragment = new PasswordEncryptionTab();
+    public static RandomEncryptionTab newInstance() {
+        RandomEncryptionTab fragment = new RandomEncryptionTab();
         Bundle args = new Bundle();
 
         // Add values here
@@ -33,16 +45,30 @@ public class RandomEncryptionTab extends EncryptionTypeFragment {
                              Bundle savedInstanceState) {
         mSupportsDecryption = false;
 
-        final View rootView = inflater.inflate(R.layout.password_encryption_tab, container, false);
+        final View rootView = inflater.inflate(R.layout.random_encryption_tab, container, false);
 
-        passwordInputField = (EditText) rootView.findViewById(R.id.passwordField);
+        passwordLabel = (TextView) rootView.findViewById(R.id.passwordLabel);
+
+        Button createRandomPassword = (Button) rootView.findViewById(R.id.gen_password_btn);
+        createRandomPassword.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                passwordLabel.setText(generateRandomString());
+            }
+        });
+
         return rootView;
+    }
+
+    private String generateRandomString() {
+        return "abcdefghijklmnop123";
     }
 
 
     @Override
     public void setupEncryptionAlgorithm() {
-
+        ((PasswordFileEncryptor) mEncryptionAlgorithm).setPassword(
+                passwordLabel.getText().toString());
     }
 
     @Override
