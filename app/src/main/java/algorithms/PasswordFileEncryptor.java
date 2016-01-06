@@ -1,15 +1,15 @@
-package com.kontraproduktion.cryptosend;
+package algorithms;
 
 import android.app.Activity;
-import android.content.Context;
-import android.util.Log;
-import android.widget.Toast;
+
+import com.kontraproduktion.cryptosend.PasswordEncryptionTab;
+import com.kontraproduktion.cryptosend.R;
 
 import java.io.File;
 
 import helper.CryptoHelper;
 import interfaces.EncryptInterface;
-import interfaces.FileProcessingAlgorithm;
+import templates.FileProcessingAlgorithm;
 import interfaces.PasswordInterface;
 
 /**
@@ -55,7 +55,7 @@ public class PasswordFileEncryptor extends FileProcessingAlgorithm implements Pa
 
     @Override
     protected byte[] processBlock(byte[] inputData) {
-        String salt = CryptoHelper.getInstance().genSalt();
+        String salt = CryptoHelper.getInstance().generateSalt();
         byte[] encryptedData = mCryptoHelper.encryptWithAES(inputData, mPassword, salt);
         byte [] saltBytes = salt.getBytes();
 

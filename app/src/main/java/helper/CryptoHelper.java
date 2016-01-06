@@ -4,7 +4,9 @@ import android.util.Log;
 
 import org.mindrot.jbcrypt.BCrypt;
 
+import java.math.BigInteger;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
@@ -19,6 +21,7 @@ public class CryptoHelper {
 
     // Singleton pattern
     private static CryptoHelper sInstance = new CryptoHelper();
+    private SecureRandom mSecureRandom = new SecureRandom();
 
     private CryptoHelper() {}
 
@@ -79,8 +82,11 @@ public class CryptoHelper {
         return secretKeySpec;
     }
 
-    public String genSalt() {
+    public String generateSalt() {
         return BCrypt.gensalt();
     }
 
+    public String generateRandomString(int length) {
+        return new BigInteger(130, mSecureRandom).toString(length);
+    }
 }

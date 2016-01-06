@@ -1,18 +1,15 @@
 package com.kontraproduktion.cryptosend;
 
-import android.content.pm.LabeledIntent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.TextView;
 
-import org.w3c.dom.Text;
-
-import interfaces.EncryptionTypeFragment;
+import algorithms.PasswordFileEncryptor;
+import helper.CryptoHelper;
+import templates.EncryptionTypeFragment;
 
 /**
  * Created by koogle on 05/01/16.
@@ -61,7 +58,7 @@ public class RandomEncryptionTab extends EncryptionTypeFragment {
     }
 
     private String generateRandomString() {
-        return "abcdefghijklmnop123";
+        return CryptoHelper.getInstance().generateRandomString(12);
     }
 
 

@@ -1,4 +1,4 @@
-package interfaces;
+package com.kontraproduktion.cryptosend;
 
 import android.app.Activity;
 import android.net.Uri;
@@ -9,6 +9,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 
 import helper.CacheFileHelper;
+import templates.FileProcessingAlgorithm;
 
 /**
  * Created by Jakob Frick on 21/11/15.

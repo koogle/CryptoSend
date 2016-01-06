@@ -1,15 +1,15 @@
-package com.kontraproduktion.cryptosend;
+package algorithms;
 
 import android.app.Activity;
-import android.content.Context;
-import android.util.Log;
+
+import com.kontraproduktion.cryptosend.R;
 
 import java.io.File;
 import java.util.Arrays;
 
 import helper.CryptoHelper;
 import interfaces.DecryptInterface;
-import interfaces.FileProcessingAlgorithm;
+import templates.FileProcessingAlgorithm;
 import interfaces.PasswordInterface;
 
 /**

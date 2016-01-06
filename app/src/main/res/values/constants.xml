@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Maximum cache size in mb -->
-    <integer name="max_cache_size">500</integer>
+    <integer name="max_cache_size">40</integer>
 </resources>

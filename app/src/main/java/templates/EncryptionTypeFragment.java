@@ -1,4 +1,4 @@
-package interfaces;
+package templates;
 
 import android.support.v4.app.Fragment;
 
